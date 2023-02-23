@@ -60,7 +60,6 @@ describe("Mock Test", function () {
     });
     it(`airdrop`, async function(){
       await expect(NFT.airdrop()).not.reverted;
-      console.log(await NFT.totalSupply());
       for (let i = 0; i < AMOUNT; i++){
         if (i % 100 == 0) console.log(i)
         expect(await NFT.ownerOf(i)).to.be.equal(al[i]);
