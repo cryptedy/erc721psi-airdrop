@@ -12,6 +12,9 @@ contract Mock is ERC721PsiBurnableAirdrop{
         _appendAirdropAddresses(candidates);
     }
 
+    function airdrop() external{
+        _airdrop();
+    }
 
     function baseURI() public view returns (string memory) {
         return _baseURI();

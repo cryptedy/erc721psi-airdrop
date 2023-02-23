@@ -2,8 +2,9 @@
 pragma solidity ^0.8.7;
 
 import "solidity-bits/contracts/BitMaps.sol";
-import "erc721psi/contracts/extension/ERC721PsiBurnable.sol";
+import "./extension/ERC721PsiBurnable.sol";
 import "solmate/src/utils/SSTORE2.sol";
+import "hardhat/console.sol";
 
 abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
     using BitMaps for BitMaps.BitMap;
@@ -12,11 +13,14 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
     uint256 internal constant MAX_AMOUNT_ADDRESS = 1200;
     uint256 public immutable AIRDROP_AMOUNT;
 
+    bool airdroped;
+
     constructor (string memory name_, string memory symbol_, uint256 airdropAmount) ERC721Psi(name_, symbol_){
         AIRDROP_AMOUNT = airdropAmount;
     }
 
     function _airdrop() internal virtual{
+        if (airdroped) revert("Already airdroped");
         // set all bitmap
         _batchHead.setBatch(0, AIRDROP_AMOUNT);
         // 
@@ -26,7 +30,11 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
         for(uint256 tokenId = _startTokenId(); tokenId < _startTokenId() + AIRDROP_AMOUNT; tokenId++){
             emit Transfer(address(0), getAirdropAddress(tokenId), tokenId);
         } 
-    
+        airdroped = true;
+    }
+
+    function nextTokenId() public view returns(uint256){
+        return _currentIndex;
     }
 
     function ownerOf(uint256 tokenId)
@@ -42,7 +50,11 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
         }
         return owner;
     }
-
+    /*
+    function _appendAirdropAddresses(address[] memory candidates) internal virtual{
+        airdropPointers.push(SSTORE2.write(_encode(candidates)));
+    }
+    */
     function _appendAirdropAddresses(address[] memory candidates) internal virtual{
         // address amount
         uint256 amount = candidates.length;
@@ -65,11 +77,26 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
             airdropPointers.push(SSTORE2.write(_encode(input)));
         }
     }
-
     function getAirdropAddress(uint256 tokenId) public view returns(address addr){
         uint256 outer = tokenId / MAX_AMOUNT_ADDRESS;
         uint256 inner = tokenId % MAX_AMOUNT_ADDRESS;
         return _decode(airdropPointers[outer], inner);
+    }
+
+    function encode(address[] memory input) public view returns(bytes memory data, uint256 gas){
+        gas = gasleft();
+        bytes32[] memory inputBytes;
+        assembly{
+            inputBytes := input
+        }
+        data = _encodeFix(inputBytes, 20);
+        gas -= gasleft();
+    }
+
+    function decode(uint256 outer, uint256 inner) public view returns(address addr, uint256 gas){
+        gas = gasleft();
+        addr = _decode(airdropPointers[outer], inner);
+        gas -= gasleft();
     }
 
     function _encode(address[] memory input) internal pure returns(bytes memory data){
@@ -128,16 +155,11 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
             length := shr(240, shl(8, stuckHeader))
         }
         if (index >= length) revert("invalid index");
-        uint256 pos;
+        uint256 pos = 3 + index * 20;
+        bytes memory data = SSTORE2.read(pointer, pos, pos + 20);
         assembly {
-            // calc position of body specified by index
-            pos := add(3, mul(index, 20))
-        }
-        bytes memory data = SSTORE2.read(pointer, pos, 0x20);
-        assembly {
-            addr := shr(12, mload(add(data, 0x20)))
+            addr := shr(96, mload(add(data, 0x20)))
         }
     } 
-
 
 }
