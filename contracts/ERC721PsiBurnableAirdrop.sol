@@ -114,7 +114,7 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
             // data size: [] means byte(s)
             // [1] identifier of array type
             // [2] length of elements
-            // [32 * length of elements] bodies of elements
+            // [elemSize * length of elements] bodies of elements
             let dataSize := add(3, mul(elemSize, len))
             // refer free memory pointer
             data := mload(0x40)
@@ -148,15 +148,22 @@ abstract contract ERC721PsiBurnableAirdrop is ERC721PsiBurnable {
         uint256 length;
         // check header
         assembly {
+            // load header on stuck
             let stuckHeader := mload(add(header, 0x20))
+            // check element size as address(20bytes)
             if iszero(eq(shr(248, stuckHeader), 20)){
                 revert(0,0)
             }
+            // get length of elements
             length := shr(240, shl(8, stuckHeader))
         }
+        // check bound of index
         if (index >= length) revert("invalid index");
+        // calc position
         uint256 pos = 3 + index * 20;
+        // read element
         bytes memory data = SSTORE2.read(pointer, pos, pos + 20);
+        // change endian and store address on return variable
         assembly {
             addr := shr(96, mload(add(data, 0x20)))
         }
