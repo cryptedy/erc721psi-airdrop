@@ -1,0 +1,19 @@
+[profile.default]
+src = 'contracts'
+out = 'out'
+libs = ["node_modules", "lib"]
+test = 'foundry-test'
+cache_path  = 'foundry-cache'
+
+remappings = [
+    '@chainlink/=node_modules/@chainlink/',
+    '@eth-optimism/=node_modules/@eth-optimism/',
+    '@openzeppelin/=node_modules/@openzeppelin/',
+    'erc721psi/=node_modules/erc721psi/',
+    'eth-gas-reporter/=node_modules/eth-gas-reporter/',
+    'hardhat/=node_modules/hardhat/',
+    'solidity-bits/=node_modules/solidity-bits/',
+    'solmate/=node_modules/solmate/',
+]
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
